@@ -3,11 +3,11 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
+    "dev": "pnpm --filter @gate402/middleware build && next dev",
+    "build": "pnpm --filter @gate402/middleware build && next build",
     "start": "next start",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "pnpm --filter @gate402/middleware build && tsc --noEmit",
+    "test": "pnpm --filter @gate402/middleware build && vitest run"
   },
   "dependencies": {
     "@gate402/middleware": "workspace:*",
