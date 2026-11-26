@@ -76,7 +76,7 @@ Timestamp: <unix_seconds>
    - `X-Agent-Signature: <signature>`
 
 ```bash
-curl -i "<GATE402_BASE_URL>/api/v1/bsc/safety-audit?address=<TARGET_CONTRACT>" \
+curl -i "https://web-nu-nine-yyzt7gth6g.vercel.app/api/v1/bsc/safety-audit?address=<TARGET_CONTRACT>" \
   -H "X-Agent-Address: <wallet>" \
   -H "X-Agent-Timestamp: <unix_seconds>" \
   -H "X-Agent-Signature: <signature>"

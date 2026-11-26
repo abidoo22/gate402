@@ -5,6 +5,8 @@
 Built for the **Binance Wallet × BNB Chain Agent ID Hackathon** (Nov 18 – Dec 9, 2026).
 
 ### Live BSC Mainnet Deployment (Verified Open-Source)
+- **Live Web App & API Gateway:** [https://web-nu-nine-yyzt7gth6g.vercel.app](https://web-nu-nine-yyzt7gth6g.vercel.app)
+- **Streamable HTTP MCP Endpoint:** `https://web-nu-nine-yyzt7gth6g.vercel.app/api/mcp`
 - **Gate402Registry (Chain 56):** [`0x08441938440B097ABd849FDB0F6CFe700AB6e994`](https://bscscan.com/address/0x08441938440B097ABd849FDB0F6CFe700AB6e994#code) (BscScan & Sourcify Verified · Immutable · Zero Owner)
 - **Bound Agent ID HandleRegistry:** [`0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F`](https://bscscan.com/address/0x60B9262456dE011F7d15a54CdD8c48bAaa8B022F)
 
