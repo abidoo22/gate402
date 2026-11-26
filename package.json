@@ -1,0 +1,22 @@
+{
+  "name": "gate402",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Sybil-proof free-tier & Binance x402 v2 API gateway powered by Binance Agent ID on BNB Smart Chain",
+  "scripts": {
+    "dev": "pnpm --filter web dev",
+    "build": "pnpm --filter @gate402/middleware build && pnpm --filter web build",
+    "test": "pnpm test:contracts && pnpm test:middleware && pnpm test:web",
+    "test:contracts": "pnpm --filter @gate402/contracts test",
+    "test:contracts:fork": "pnpm --filter @gate402/contracts test:fork",
+    "test:middleware": "pnpm --filter @gate402/middleware test",
+    "test:web": "pnpm --filter web test",
+    "typecheck": "pnpm --filter @gate402/middleware typecheck && pnpm --filter web typecheck",
+    "deploy:bsc": "pnpm --filter @gate402/contracts deploy:bsc",
+    "deploy:bsc:testnet": "pnpm --filter @gate402/contracts deploy:bsc:testnet",
+    "seed:services": "pnpm --filter @gate402/contracts seed:services"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

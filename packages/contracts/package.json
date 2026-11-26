@@ -1,0 +1,15 @@
+{
+  "name": "@gate402/contracts",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "PATH=\"$HOME/.foundry/bin:$PATH\" forge build",
+    "test": "PATH=\"$HOME/.foundry/bin:$PATH\" forge test -vv --no-match-path 'test/*Fork*'",
+    "test:fork": "PATH=\"$HOME/.foundry/bin:$PATH\" BSC_RPC_URL=${BSC_RPC_URL:-https://bsc-dataseed.binance.org/} forge test -vv --match-path 'test/*Fork*'",
+    "test:all": "PATH=\"$HOME/.foundry/bin:$PATH\" forge test -vv",
+    "deploy:bsc": "bash script/deploy_bsc.sh",
+    "deploy:bsc:testnet": "bash script/deploy_bsc_testnet.sh",
+    "seed:services": "bash script/seed_services.sh"
+  }
+}

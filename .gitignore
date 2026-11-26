@@ -1,0 +1,23 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+.next/
+out/
+cache/
+broadcast/
+packages/contracts/out/
+packages/contracts/cache/
+
+# Environment & secrets (NEVER commit private keys or API keys)
+.env
+.env.*
+!.env.example
+
+# IDE & OS
+.DS_Store
+*.log
+.vercel/
+coverage/

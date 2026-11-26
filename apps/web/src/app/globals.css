@@ -1,0 +1,193 @@
+@import "tailwindcss";
+
+:root {
+  color-scheme: dark;
+  --bg-canvas: #060a11;
+  --bg-surface: #0d1420;
+  --bg-elevated: #121c2c;
+  --border-subtle: #1e2d44;
+  --ink-primary: #f1f5f9;
+  --ink-secondary: #94a3b8;
+  --accent-emerald: #10b981;
+  --accent-gold: #f59e0b;
+  --accent-danger: #f43f5e;
+  --scrollbar-track: #0b111c;
+  --scrollbar-thumb: #334155;
+
+  accent-color: var(--accent-emerald);
+  scrollbar-color: var(--scrollbar-thumb) var(--scrollbar-track);
+}
+
+@supports not (scrollbar-color: auto) {
+  html {
+    scrollbar-width: auto;
+  }
+  html::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  html::-webkit-scrollbar-track {
+    background: var(--scrollbar-track);
+  }
+  html::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb);
+    border-radius: 6px;
+  }
+}
+
+html,
+body {
+  background-color: var(--bg-canvas);
+  color: var(--ink-primary);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  min-height: 100%;
+  -webkit-font-smoothing: antialiased;
+}
+
+code,
+pre,
+.font-mono {
+  font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+}
+
+/* Visually hidden utility that reveals on focus (for skip link) */
+.visually-hidden:where(:not(:focus-within, :active)) {
+  position: absolute !important;
+  clip-path: inset(50%) !important;
+  overflow: hidden !important;
+  width: 1px !important;
+  height: 1px !important;
+  margin: -1px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  white-space: nowrap !important;
+}
+
+.skip-link:focus-visible {
+  position: fixed;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 100;
+  background: var(--accent-emerald);
+  color: #03150e;
+  padding: 0.625rem 1rem;
+  border-radius: 0.5rem;
+  font-weight: 700;
+}
+
+/* High-contrast focus rings across all interactive elements */
+:where(a:any-link, button, input, select, textarea, [tabindex="0"]):focus-visible {
+  outline: 3px solid var(--accent-emerald);
+  outline-offset: 2px;
+}
+
+/* Defer validation error styling until after user interaction (:user-invalid) */
+.field-input:is(:user-invalid, .user-invalid-fallback) {
+  border-color: var(--accent-danger);
+  background-color: rgba(244, 63, 94, 0.08);
+}
+
+.field-input:is(:user-invalid, .user-invalid-fallback) + .field-error {
+  display: block;
+}
+
+.field-error {
+  display: none;
+  color: #fda4af;
+  font-size: 0.8125rem;
+  margin-top: 0.375rem;
+}
+
+/* Responsive container-query data tables */
+.table-wrapper {
+  overflow: auto;
+  max-inline-size: 100%;
+  max-block-size: min(460px, 70vh);
+  container-type: inline-size;
+  border: 1px solid var(--border-subtle);
+  border-radius: 0.75rem;
+  background: var(--bg-surface);
+}
+
+.data-table {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.data-table thead {
+  position: sticky;
+  inset-block-start: 0;
+  z-index: 2;
+  background: var(--bg-elevated);
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
+.data-table tbody th {
+  position: sticky;
+  inset-inline-start: 0;
+  background: var(--bg-surface);
+  font-weight: 600;
+}
+
+@container (width < 620px) {
+  .data-table,
+  .data-table thead,
+  .data-table tbody,
+  .data-table tr,
+  .data-table th,
+  .data-table td {
+    display: block;
+  }
+
+  .data-table thead {
+    display: none;
+  }
+
+  .data-table tr {
+    margin: 0.75rem;
+    border: 1px solid var(--border-subtle);
+    border-radius: 0.625rem;
+    background: var(--bg-elevated);
+  }
+
+  .data-table tbody th {
+    position: sticky;
+    inset-block-start: 0;
+    z-index: 2;
+    background: #162338;
+    border-top-left-radius: 0.625rem;
+    border-top-right-radius: 0.625rem;
+  }
+
+  .data-table td {
+    border-bottom: 1px solid rgba(30, 45, 68, 0.6);
+  }
+
+  .data-table td:last-child {
+    border-bottom: 0;
+  }
+
+  .data-table td[data-label]::before {
+    content: attr(data-label) ": ";
+    color: var(--ink-secondary);
+    font-weight: 600;
+    margin-inline-end: 0.35rem;
+  }
+}
+
+/* Comfortable touch targets on coarse pointers */
+@media (pointer: coarse) {
+  button,
+  a.btn-target {
+    min-block-size: 44px;
+    min-inline-size: 44px;
+  }
+}
