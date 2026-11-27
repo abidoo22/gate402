@@ -21,21 +21,28 @@ interface Eip1193Provider {
 declare global {
   interface Window {
     ethereum?: Eip1193Provider;
+    binancew3w?: { ethereum?: Eip1193Provider };
   }
 }
 
+function getInjectedProvider(): Eip1193Provider | undefined {
+  if (typeof window === "undefined") return undefined;
+  return window.binancew3w?.ethereum ?? window.ethereum;
+}
+
 export function hasInjectedWallet(): boolean {
-  return typeof window !== "undefined" && Boolean(window.ethereum);
+  return Boolean(getInjectedProvider());
 }
 
 export async function connectBscWallet(): Promise<Address> {
-  if (typeof window === "undefined" || !window.ethereum) {
+  const provider = getInjectedProvider();
+  if (!provider) {
     throw new Error(
       "No Web3 wallet detected. Open Gate402 inside Binance Wallet dApp browser or install a browser wallet extension."
     );
   }
 
-  const accounts = (await window.ethereum.request({
+  const accounts = (await provider.request({
     method: "eth_requestAccounts",
   })) as string[];
 
@@ -44,15 +51,15 @@ export async function connectBscWallet(): Promise<Address> {
   }
 
   // Ensure BNB Smart Chain Mainnet (chainId 56 = 0x38)
-  const chainIdHex = (await window.ethereum.request({ method: "eth_chainId" })) as string;
+  const chainIdHex = (await provider.request({ method: "eth_chainId" })) as string;
   if (chainIdHex?.toLowerCase() !== "0x38") {
     try {
-      await window.ethereum.request({
+      await provider.request({
         method: "wallet_switchEthereumChain",
         params: [{ chainId: "0x38" }],
       });
     } catch {
-      await window.ethereum.request({
+      await provider.request({
         method: "wallet_addEthereumChain",
         params: [
           {
@@ -71,13 +78,14 @@ export async function connectBscWallet(): Promise<Address> {
 }
 
 function getClient(account: Address) {
-  if (typeof window === "undefined" || !window.ethereum) {
+  const provider = getInjectedProvider();
+  if (!provider) {
     throw new Error("Wallet provider unavailable.");
   }
   return createWalletClient({
     account,
     chain: bsc,
-    transport: custom(window.ethereum),
+    transport: custom(provider),
   });
 }
 

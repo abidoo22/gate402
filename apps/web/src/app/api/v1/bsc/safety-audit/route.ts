@@ -1,14 +1,13 @@
 import { NextResponse } from "next/server";
 import { evaluateGate402Request } from "@gate402/middleware";
-import { FLAGSHIP_SERVICES, SAMPLE_WBNB_ADDRESS, getServerConfig } from "@/lib/config";
+import { FLAGSHIP_SERVICES, getServerConfig, isSamplePreviewAddress } from "@/lib/config";
 import { runBscSafetyAudit } from "@/lib/bsc-intel";
 
 export async function GET(request: Request) {
   const url = new URL(request.url);
   const address = url.searchParams.get("address")?.trim() ?? "";
   const isCanonicalSample =
-    url.searchParams.get("preview") === "sample" &&
-    address.toLowerCase() === SAMPLE_WBNB_ADDRESS.toLowerCase();
+    url.searchParams.get("preview") === "sample" && isSamplePreviewAddress(address);
 
   const cfg = getServerConfig();
   const svc = FLAGSHIP_SERVICES[0];

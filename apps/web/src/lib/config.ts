@@ -4,8 +4,20 @@ import { AGENT_ID_REGISTRY_ADDRESS } from "@gate402/middleware";
 export const DEFAULT_BSC_RPC_URL = "https://bsc-dataseed.binance.org/";
 export const FALLBACK_BSC_RPC_URL = "https://bsc-rpc.publicnode.com";
 export const SAMPLE_WBNB_ADDRESS: Address = "0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c";
+export const SAMPLE_USDT_ADDRESS: Address = "0x55d398326f99059fF775485246999027B3197955";
 export const DEFAULT_GATE402_CONTRACT_ADDRESS: Address =
   "0x08441938440B097ABd849FDB0F6CFe700AB6e994";
+
+export const SAMPLE_PREVIEW_ADDRESSES: readonly Address[] = [
+  SAMPLE_WBNB_ADDRESS,
+  SAMPLE_USDT_ADDRESS,
+  DEFAULT_GATE402_CONTRACT_ADDRESS,
+];
+
+export function isSamplePreviewAddress(address: string): boolean {
+  const lower = address.trim().toLowerCase();
+  return SAMPLE_PREVIEW_ADDRESSES.some((a) => a.toLowerCase() === lower);
+}
 
 export const FLAGSHIP_SERVICES = [
   {

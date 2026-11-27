@@ -24,7 +24,11 @@ import {
   Zap,
 } from "lucide-react";
 import type { Address } from "viem";
-import { DEFAULT_GATE402_CONTRACT_ADDRESS, SAMPLE_WBNB_ADDRESS } from "@/lib/config";
+import {
+  DEFAULT_GATE402_CONTRACT_ADDRESS,
+  SAMPLE_USDT_ADDRESS,
+  SAMPLE_WBNB_ADDRESS,
+} from "@/lib/config";
 import type { DexIntelReport, SafetyAuditReport } from "@/lib/bsc-intel";
 import {
   connectBscWallet,
@@ -64,16 +68,16 @@ const SHORT_ADDR = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const VERDICT_LABELS = ["SAFE", "CAUTION", "HIGH RISK"] as const;
 
 const PRESET_CONTRACTS = [
-  { label: "WBNB (Live Free Preview)", address: SAMPLE_WBNB_ADDRESS, preview: true },
+  { label: "WBNB", address: SAMPLE_WBNB_ADDRESS, preview: true },
   {
     label: "USDT (BSC)",
-    address: "0x55d398326f99059fF775485246999027B3197955",
-    preview: false,
+    address: SAMPLE_USDT_ADDRESS,
+    preview: true,
   },
   {
     label: "Gate402Registry",
     address: DEFAULT_GATE402_CONTRACT_ADDRESS,
-    preview: false,
+    preview: true,
   },
 ] as const;
 
@@ -237,7 +241,12 @@ export function GuardApp() {
           `Verified ${auditJson.access.handle} · ${auditJson.access.quotaRemaining}/${auditJson.access.quotaLimit} free scans left today`
         );
       } else {
-        setAccessBadge("Live Mainnet Preview (WBNB) · Activate your .ai Pass for any BSC contract");
+        const matched = PRESET_CONTRACTS.find(
+          (p) => p.address.toLowerCase() === target.toLowerCase()
+        );
+        setAccessBadge(
+          `Live Mainnet Preview (${matched?.label ?? SHORT_ADDR(target)}) · Activate your .ai Pass for any custom BSC contract`
+        );
       }
 
       if (dexRes.ok) {
@@ -292,6 +301,9 @@ export function GuardApp() {
   const bawPreviewCmd = `baw contract-call preview --binanceChainId 56 --from <YOUR_AGENTIC_WALLET> --to ${contractAddr} --value 0 --inputData 0x01144d47 --json`;
 
   const isInputInvalid = inputTouched && !/^0x[a-fA-F0-9]{40}$/.test(contractInput.trim());
+  const activePreset = PRESET_CONTRACTS.find(
+    (p) => p.address.toLowerCase() === contractInput.trim().toLowerCase()
+  );
 
   return (
     <div className="space-y-12 sm:space-y-16">
@@ -654,25 +666,28 @@ export function GuardApp() {
             <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
               Quick Targets:
             </span>
-            {PRESET_CONTRACTS.map((preset) => (
-              <button
-                key={preset.address}
-                type="button"
-                onClick={() => {
-                  setContractInput(preset.address);
-                  if (preset.preview) {
+            {PRESET_CONTRACTS.map((preset) => {
+              const isSelected =
+                preset.address.toLowerCase() === contractInput.trim().toLowerCase();
+              return (
+                <button
+                  key={preset.address}
+                  type="button"
+                  aria-pressed={isSelected}
+                  onClick={() => {
+                    setContractInput(preset.address);
                     void runScan(true, preset.address);
-                  }
-                }}
-                className={`rounded-lg px-2.5 py-1 text-xs font-mono border transition-colors cursor-pointer ${
-                  preset.preview
-                    ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
-                    : "border-slate-800 bg-[#060b14] text-slate-300 hover:border-amber-400/40 hover:text-amber-200"
-                }`}
-              >
-                {preset.label}
-              </button>
-            ))}
+                  }}
+                  className={`rounded-lg px-2.5 py-1 text-xs font-mono border transition-colors cursor-pointer ${
+                    isSelected
+                      ? "border-emerald-400/60 bg-emerald-500/15 text-emerald-200 shadow-sm shadow-emerald-500/15"
+                      : "border-slate-800 bg-[#060b14] text-slate-300 hover:border-emerald-400/40 hover:text-emerald-200"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
           </div>
 
           <form
@@ -720,13 +735,20 @@ export function GuardApp() {
                 type="button"
                 disabled={busyAction === "scan"}
                 onClick={() => {
-                  setContractInput(SAMPLE_WBNB_ADDRESS);
-                  void runScan(true);
+                  if (activePreset) {
+                    void runScan(true, activePreset.address);
+                  } else {
+                    void runScan(false, contractInput.trim());
+                  }
                 }}
                 className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-bold text-sm px-4 py-2.5 shadow-md shadow-emerald-500/15 transition-all cursor-pointer disabled:opacity-60"
               >
                 <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
-                {busyAction === "scan" ? "Scanning BSC…" : "Instant Live Preview (WBNB)"}
+                {busyAction === "scan"
+                  ? "Scanning BSC…"
+                  : activePreset
+                    ? `Free Live Preview (${activePreset.label})`
+                    : "Scan Contract (.ai Pass)"}
               </button>
               <button
                 type="submit"
