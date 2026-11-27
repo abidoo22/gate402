@@ -15,6 +15,7 @@
     "next": "^15.3.3",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
+    "three": "^0.187.0",
     "viem": "^2.31.0"
   },
   "devDependencies": {
@@ -22,6 +23,7 @@
     "@types/node": "^22.15.21",
     "@types/react": "^19.1.4",
     "@types/react-dom": "^19.1.4",
+    "@types/three": "^0.187.0",
     "tailwindcss": "^4.1.7",
     "typescript": "^5.8.3",
     "vitest": "^3.1.4"

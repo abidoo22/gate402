@@ -21,3 +21,9 @@ packages/contracts/cache/
 *.log
 .vercel/
 coverage/
+
+# Local 3D / Blender experiment assets (unused in production bundle)
+blender/
+apps/web/public/models/
+apps/web/public/images/gate402-vault-poster.webp
+apps/web/src/components/HeroVault3D.tsx

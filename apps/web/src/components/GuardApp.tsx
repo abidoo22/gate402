@@ -4,20 +4,24 @@ import { useCallback, useEffect, useState } from "react";
 import {
   Activity,
   AlertTriangle,
+  ArrowRight,
   Bot,
   Check,
   CheckCircle2,
+  Code2,
   Copy,
   ExternalLink,
   Flame,
   Info,
   KeyRound,
+  Lock,
   Search,
   ShieldAlert,
   ShieldCheck,
   Sparkles,
   Terminal,
   Wallet,
+  Zap,
 } from "lucide-react";
 import type { Address } from "viem";
 import { DEFAULT_GATE402_CONTRACT_ADDRESS, SAMPLE_WBNB_ADDRESS } from "@/lib/config";
@@ -29,6 +33,9 @@ import {
   sendRefreshDailyPassTx,
   signGate402Headers,
 } from "@/lib/wallet";
+import { LiveProtocolRouter } from "@/components/LiveProtocolRouter";
+import { AgentPassCard } from "@/components/AgentPassCard";
+import { SafetyGauge } from "@/components/SafetyGauge";
 
 interface StatusPayload {
   agentIdRegistryAddress: string;
@@ -56,6 +63,20 @@ interface StatusPayload {
 const SHORT_ADDR = (a: string) => `${a.slice(0, 6)}…${a.slice(-4)}`;
 const VERDICT_LABELS = ["SAFE", "CAUTION", "HIGH RISK"] as const;
 
+const PRESET_CONTRACTS = [
+  { label: "WBNB (Live Free Preview)", address: SAMPLE_WBNB_ADDRESS, preview: true },
+  {
+    label: "USDT (BSC)",
+    address: "0x55d398326f99059fF775485246999027B3197955",
+    preview: false,
+  },
+  {
+    label: "Gate402Registry",
+    address: DEFAULT_GATE402_CONTRACT_ADDRESS,
+    preview: false,
+  },
+] as const;
+
 export function GuardApp() {
   const [status, setStatus] = useState<StatusPayload | null>(null);
   const [wallet, setWallet] = useState<Address | null>(null);
@@ -73,6 +94,12 @@ export function GuardApp() {
   const [safetyReport, setSafetyReport] = useState<SafetyAuditReport | null>(null);
   const [dexReport, setDexReport] = useState<DexIntelReport | null>(null);
   const [accessBadge, setAccessBadge] = useState<string | null>(null);
+  const [showRawJson, setShowRawJson] = useState(false);
+  const [origin, setOrigin] = useState("https://web-nu-nine-yyzt7gth6g.vercel.app");
+
+  useEffect(() => {
+    setOrigin(window.location.origin);
+  }, []);
 
   const fetchStatus = useCallback(async (addr?: Address | null) => {
     const query = addr ? `?wallet=${addr}` : "";
@@ -156,13 +183,16 @@ export function GuardApp() {
     }
   };
 
-  const runScan = async (useSamplePreview: boolean) => {
+  const runScan = async (useSamplePreview: boolean, overrideAddr?: string) => {
     setScanError(null);
     setSafetyReport(null);
     setDexReport(null);
     setAccessBadge(null);
+    setShowRawJson(false);
 
-    const target = useSamplePreview ? SAMPLE_WBNB_ADDRESS : contractInput.trim();
+    const target = useSamplePreview
+      ? SAMPLE_WBNB_ADDRESS
+      : (overrideAddr ?? contractInput).trim();
     if (!/^0x[a-fA-F0-9]{40}$/.test(target)) {
       setInputTouched(true);
       setScanError("Enter a valid 42-character 0x BSC smart contract address.");
@@ -207,7 +237,7 @@ export function GuardApp() {
           `Verified ${auditJson.access.handle} · ${auditJson.access.quotaRemaining}/${auditJson.access.quotaLimit} free scans left today`
         );
       } else {
-        setAccessBadge("Live Mainnet Scan Preview (WBNB) · Activate your .ai Pass for any BSC contract");
+        setAccessBadge("Live Mainnet Preview (WBNB) · Activate your .ai Pass for any BSC contract");
       }
 
       if (dexRes.ok) {
@@ -256,8 +286,6 @@ export function GuardApp() {
 
   const ws = status?.walletStatus;
   const contractAddr = status?.gate402ContractAddress ?? DEFAULT_GATE402_CONTRACT_ADDRESS;
-  const origin =
-    typeof window !== "undefined" ? window.location.origin : "https://web-nu-nine-yyzt7gth6g.vercel.app";
 
   const agentPrompt = `Read ${origin}/skill.md and help me activate my free 0-BNB Gate402 .ai Guard Pass on BNB Smart Chain (${contractAddr}, selector 0x01144d47) using my Binance Agentic Wallet. Preview the call first and wait for my confirmation before executing.`;
 
@@ -266,327 +294,385 @@ export function GuardApp() {
   const isInputInvalid = inputTouched && !/^0x[a-fA-F0-9]{40}$/.test(contractInput.trim());
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-12 sm:space-y-16">
       <div aria-live="polite" className="visually-hidden">
         {announcement}
       </div>
 
-      {/* Sleek Compact Hero */}
-      <section className="relative overflow-hidden rounded-2xl border border-slate-800/90 bg-gradient-to-br from-[#0c1628] via-[#09111f] to-[#081a15] p-5 sm:p-8 shadow-2xl">
-        <div className="flex flex-wrap items-center gap-2 text-[11px] font-semibold tracking-wider uppercase">
-          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30">
-            <Sparkles className="h-3 w-3" aria-hidden="true" />
-            Agent ID Free Tier + x402 v2
-          </span>
-          <a
-            href={`https://bscscan.com/address/${contractAddr}#code`}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-500/30 hover:bg-amber-500/20 transition-colors"
+      {/* ====================================================================
+          SECTION 1: Asymmetric Split Flagship Hero + Live Protocol Visualizer
+         ==================================================================== */}
+      <section className="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-8 items-center">
+        <div className="lg:col-span-5 space-y-5">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono font-semibold uppercase tracking-wider">
+            <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-emerald-500/12 text-emerald-300 border border-emerald-400/30">
+              <Sparkles className="h-3 w-3" aria-hidden="true" />
+              Agent ID Free Tier + x402 v2
+            </span>
+            <a
+              href={`https://bscscan.com/address/${contractAddr}#code`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-amber-500/10 text-amber-300 border border-amber-400/30 hover:bg-amber-500/20 transition-colors"
+            >
+              Ownerless · BscScan
+              <ExternalLink className="h-3 w-3" aria-hidden="true" />
+            </a>
+          </div>
+
+          <h1
+            id="main-content"
+            tabIndex={-1}
+            className="hero-title font-display font-bold text-white"
           >
-            Ownerless · BscScan Verified
-            <ExternalLink className="h-3 w-3" aria-hidden="true" />
-          </a>
+            Sybil-Proof{" "}
+            <span className="bg-gradient-to-r from-amber-300 via-amber-400 to-emerald-400 bg-clip-text text-transparent">
+              .ai
+            </span>{" "}
+            Free API Access &amp; Live BSC Guard
+          </h1>
+
+          <p className="prose-pretty text-slate-300 text-sm sm:text-base max-w-[56ch]">
+            AI agents don&apos;t have credit cards — and bots drain free tiers in minutes.{" "}
+            <strong className="text-white">Gate402</strong> binds{" "}
+            <strong className="text-emerald-300">25–50 free daily BSC safety &amp; DEX scans</strong>{" "}
+            to every KYC-verified <code className="text-amber-300">name.ai</code> Agent ID, then
+            seamlessly routes overflow traffic to{" "}
+            <code className="text-amber-300">HTTP 402</code> BSC USDT micropayments.
+          </p>
+
+          {/* Dual Primary CTAs */}
+          <div className="flex flex-wrap items-center gap-3 pt-1">
+            <a
+              href="#scanner-workspace"
+              onClick={() => {
+                setContractInput(SAMPLE_WBNB_ADDRESS);
+                void runScan(true);
+              }}
+              className="btn-target inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-bold text-sm px-5 py-3 shadow-lg shadow-emerald-500/20 transition-all"
+            >
+              <Sparkles className="h-4 w-4" aria-hidden="true" />
+              Run Instant WBNB Scan
+            </a>
+            <a
+              href="#pass-workspace"
+              className="btn-target inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700/90 hover:border-amber-400/50 bg-[#0b1222] text-slate-100 font-semibold text-sm px-5 py-3 transition-colors"
+            >
+              Activate .ai Guard Pass
+              <ArrowRight className="h-4 w-4 text-amber-400" aria-hidden="true" />
+            </a>
+          </div>
+
+          {/* Live On-Chain Telemetry Strip */}
+          <dl className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-2 gap-2.5 pt-2">
+            {[
+              { label: "Active .ai Passes", value: status?.stats.passes ?? 0, tone: "text-emerald-400" },
+              { label: "On-Chain APIs", value: status?.stats.services ?? 3, tone: "text-amber-300" },
+              { label: "Anchored Audits", value: status?.stats.audits ?? 0, tone: "text-sky-300" },
+              { label: "Quota Refreshes", value: status?.stats.checkIns ?? 0, tone: "text-white" },
+            ].map((m) => (
+              <div
+                key={m.label}
+                className="rounded-xl border border-slate-800/80 bg-[#080e1a]/90 px-3 py-2.5"
+              >
+                <dt className="text-[11px] font-medium text-slate-400">{m.label}</dt>
+                <dd className={`mt-0.5 text-xl font-bold font-mono ${m.tone}`}>{m.value}</dd>
+              </div>
+            ))}
+          </dl>
         </div>
 
-        <h1
-          id="main-content"
-          tabIndex={-1}
-          className="mt-4 text-2xl sm:text-4xl font-extrabold tracking-tight text-white leading-snug sm:leading-tight max-w-3xl"
-        >
-          Sybil-Proof <span className="text-amber-400">.ai</span> Free API Access &amp; Live BSC
-          Contract Guard
-        </h1>
-
-        <p className="mt-2.5 max-w-2xl text-slate-300 text-sm sm:text-base leading-relaxed">
-          One verified <code className="text-emerald-300 font-semibold">name.ai</code> Agent ID
-          unlocks <strong className="text-white">25–50 free daily BSC safety &amp; DEX scans</strong>{" "}
-          — zero credit card, impossible to Sybil-farm, with automatic{" "}
-          <code className="text-amber-300 font-semibold">HTTP 402</code> USDT overflow for AI agents.
-        </p>
-
-        {/* Compact 4-Metric Telemetry Bar */}
-        <dl className="mt-6 grid grid-cols-2 sm:grid-cols-4 gap-2.5 sm:gap-3">
-          {[
-            { label: "Active .ai Passes", value: status?.stats.passes ?? 0, accent: "text-emerald-400" },
-            { label: "Live APIs", value: status?.stats.services ?? 3, accent: "text-amber-400" },
-            { label: "On-Chain Audits", value: status?.stats.audits ?? 0, accent: "text-sky-400" },
-            { label: "Daily Refreshes", value: status?.stats.checkIns ?? 0, accent: "text-white" },
-          ].map((m) => (
-            <div
-              key={m.label}
-              className="rounded-xl border border-slate-800/80 bg-[#070d18]/90 px-3.5 py-2.5"
-            >
-              <dt className="text-[11px] font-medium text-slate-400">{m.label}</dt>
-              <dd className={`mt-0.5 text-xl sm:text-2xl font-bold font-mono ${m.accent}`}>
-                {m.value}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        {/* Right Column: Interactive Vault-Chronometer Live Protocol Router */}
+        <div className="lg:col-span-7">
+          <LiveProtocolRouter />
+        </div>
       </section>
 
-      {/* Main Workspace Grid: Left = Agentic Pass Activation, Right = Live Scanner */}
+      {/* ====================================================================
+          SECTION 2: Main Workspace (Holographic Pass Card + Mission-Control Scanner)
+         ==================================================================== */}
       <section className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        {/* Pass Activation Card (Agent Mode FIRST because Binance isolates .ai Agentic Wallets!) */}
-        <div className="lg:col-span-5 rounded-2xl border border-slate-800/90 bg-[#0b111e] p-5 sm:p-6 space-y-4">
-          <div className="flex items-center justify-between gap-2">
-            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              <KeyRound className="h-5 w-5 text-amber-400 shrink-0" aria-hidden="true" />
-              Activate .ai Guard Pass
-            </h2>
-            <span className="text-[11px] font-mono px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
-              0 BNB · Gas Only
-            </span>
-          </div>
+        {/* Left Column: Collectible Holographic Pass Card + Activation Controls */}
+        <div id="pass-workspace" className="lg:col-span-5 space-y-4 scroll-mt-20">
+          <AgentPassCard
+            handle={ws?.handle ?? null}
+            passActive={Boolean(ws?.passActive)}
+            passId={ws?.passId ?? 0}
+            streakDays={ws?.streakDays ?? 1}
+            checkedInToday={Boolean(ws?.checkedInToday)}
+            walletShort={wallet ? SHORT_ADDR(wallet) : null}
+          />
 
-          {/* Mode Toggle: AI Agent (Recommended for Binance Agentic Wallet) vs Browser Wallet */}
-          <div
-            role="tablist"
-            aria-label="Pass activation method"
-            className="grid grid-cols-2 rounded-xl border border-slate-800 bg-[#060a12] p-1 gap-1"
-          >
-            <button
-              type="button"
-              role="tab"
-              aria-selected={passMode === "agent"}
-              onClick={() => setPassMode("agent")}
-              className={`min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                passMode === "agent"
-                  ? "bg-emerald-500/15 text-emerald-300 border border-emerald-500/30"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
+          <div className="glass-panel rounded-2xl p-5 space-y-4">
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="font-display text-base font-bold text-white flex items-center gap-2">
+                <KeyRound className="h-4 w-4 text-amber-400 shrink-0" aria-hidden="true" />
+                Activate Your Pass
+              </h2>
+              <span className="font-mono text-[11px] px-2 py-0.5 rounded-md bg-emerald-500/10 text-emerald-300 border border-emerald-500/25">
+                0 BNB · Gas Only
+              </span>
+            </div>
+
+            <div
+              role="tablist"
+              aria-label="Pass activation method"
+              className="grid grid-cols-2 rounded-xl border border-slate-800 bg-[#050810] p-1 gap-1"
             >
-              <Bot className="h-3.5 w-3.5" aria-hidden="true" />
-              AI Agent (baw CLI)
-            </button>
-            <button
-              type="button"
-              role="tab"
-              aria-selected={passMode === "browser"}
-              onClick={() => setPassMode("browser")}
-              className={`min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
-                passMode === "browser"
-                  ? "bg-amber-500/15 text-amber-300 border border-amber-500/30"
-                  : "text-slate-400 hover:text-slate-200"
-              }`}
-            >
-              <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
-              Browser Wallet
-            </button>
-          </div>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={passMode === "agent"}
+                onClick={() => setPassMode("agent")}
+                className={`min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  passMode === "agent"
+                    ? "bg-emerald-500/15 text-emerald-300 border border-emerald-400/35"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Bot className="h-3.5 w-3.5" aria-hidden="true" />
+                AI Agent (baw CLI)
+              </button>
+              <button
+                type="button"
+                role="tab"
+                aria-selected={passMode === "browser"}
+                onClick={() => setPassMode("browser")}
+                className={`min-h-[38px] inline-flex items-center justify-center gap-1.5 rounded-lg text-xs font-semibold transition-all cursor-pointer ${
+                  passMode === "browser"
+                    ? "bg-amber-500/15 text-amber-300 border border-amber-400/35"
+                    : "text-slate-400 hover:text-slate-200"
+                }`}
+              >
+                <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+                Browser Wallet
+              </button>
+            </div>
 
-          {passMode === "agent" ? (
-            <div className="space-y-3.5">
-              <div className="rounded-xl border border-emerald-500/25 bg-emerald-950/20 p-3.5 text-xs text-slate-300 leading-relaxed flex gap-2.5">
-                <Info className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" aria-hidden="true" />
-                <div>
-                  <strong className="text-emerald-300">Why AI Agent Mode?</strong> Binance isolates
-                  your <code className="text-amber-300">.ai</code> Agentic Wallet from standard
-                  mobile dApp browsers. Copy the prompt below into your AI agent (or run{" "}
-                  <code className="text-slate-200">baw</code> locally) to activate Pass #1 directly
-                  from your <code className="text-amber-300">name.ai</code> wallet.
+            {passMode === "agent" ? (
+              <div className="space-y-3.5">
+                <div className="rounded-xl border border-emerald-500/25 bg-emerald-950/20 p-3 text-xs text-slate-300 leading-relaxed flex gap-2.5">
+                  <Info className="h-4 w-4 text-emerald-400 shrink-0 mt-0.5" aria-hidden="true" />
+                  <p className="prose-pretty">
+                    Binance isolates your <code className="text-amber-300">.ai</code> Agentic Wallet
+                    from standard dApp browsers. Paste this 1-line prompt into your AI agent (or run{" "}
+                    <code className="text-slate-200">baw</code> locally) to activate directly from
+                    your <code className="text-amber-300">name.ai</code> wallet.
+                  </p>
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-200">
-                    Option A — 1-Click Prompt for Any AI Agent
-                  </span>
-                  <a
-                    href="/skill.md"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-[11px] font-mono text-emerald-400 hover:underline inline-flex items-center gap-1"
-                  >
-                    /skill.md <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                  </a>
-                </div>
-                <div className="rounded-xl border border-slate-800 bg-[#060a12] p-3 text-xs font-mono text-slate-300 leading-relaxed break-words">
-                  {agentPrompt}
-                </div>
-                <button
-                  type="button"
-                  onClick={() => void copyText("prompt", agentPrompt)}
-                  className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm px-4 py-2.5 transition-colors cursor-pointer"
-                >
-                  {copiedId === "prompt" ? (
-                    <>
-                      <Check className="h-4 w-4" aria-hidden="true" />
-                      Copied Agent Prompt!
-                    </>
-                  ) : (
-                    <>
-                      <Copy className="h-4 w-4" aria-hidden="true" />
-                      Copy Prompt for Your AI Agent
-                    </>
-                  )}
-                </button>
-              </div>
-
-              <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
-                <div className="flex items-center justify-between">
-                  <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
-                    <Terminal className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
-                    Option B — Direct <code>baw</code> CLI Preview
-                  </span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-xs">
+                    <span className="font-semibold text-slate-200">
+                      1-Click AI Agent Prompt
+                    </span>
+                    <a
+                      href="/skill.md"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-mono text-[11px] text-emerald-400 hover:underline inline-flex items-center gap-1"
+                    >
+                      /skill.md <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                    </a>
+                  </div>
+                  <div className="rounded-xl border border-slate-800 bg-[#050810] p-3 text-[11px] font-mono text-slate-300 leading-relaxed break-words">
+                    {agentPrompt}
+                  </div>
                   <button
                     type="button"
-                    onClick={() => void copyText("baw", bawPreviewCmd)}
-                    className="text-[11px] font-mono text-amber-300 hover:text-amber-200 inline-flex items-center gap-1 cursor-pointer"
+                    onClick={() => void copyText("prompt", agentPrompt)}
+                    className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-bold text-sm px-4 py-2.5 transition-all cursor-pointer"
                   >
-                    {copiedId === "baw" ? (
-                      <Check className="h-3 w-3 text-emerald-400" aria-hidden="true" />
+                    {copiedId === "prompt" ? (
+                      <>
+                        <Check className="h-4 w-4" aria-hidden="true" />
+                        Copied Agent Prompt!
+                      </>
                     ) : (
-                      <Copy className="h-3 w-3" aria-hidden="true" />
+                      <>
+                        <Copy className="h-4 w-4" aria-hidden="true" />
+                        Copy Prompt for Your AI Agent
+                      </>
                     )}
-                    Copy
                   </button>
                 </div>
-                <pre className="rounded-xl border border-slate-800 bg-[#060a12] p-2.5 text-[11px] font-mono text-amber-200/90 overflow-x-auto">
-                  {bawPreviewCmd}
-                </pre>
-              </div>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {!wallet ? (
-                <div className="rounded-xl border border-slate-800 bg-[#060a12] p-3.5 text-xs text-slate-300 leading-relaxed">
-                  Connect an EVM browser wallet holding an <code className="text-amber-300">.ai</code>{" "}
-                  Agent ID on BSC (Chain 56). Note: Binance App&apos;s dApp browser connects your
-                  main MPC wallet — use the <strong>AI Agent (baw CLI)</strong> tab if your{" "}
-                  <code className="text-amber-300">.ai</code> ID is on your isolated Agentic Wallet.
-                </div>
-              ) : ws?.hasAgentId ? (
-                <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-4 space-y-2">
+
+                <div className="space-y-1.5 pt-2 border-t border-slate-800/80">
                   <div className="flex items-center justify-between">
-                    <span className="text-[11px] uppercase tracking-wider text-emerald-300 font-semibold">
-                      Verified Agent ID
+                    <span className="text-xs font-semibold text-slate-300 flex items-center gap-1.5">
+                      <Terminal className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
+                      Direct <code>baw</code> CLI Preview
                     </span>
-                    <span className="font-mono text-xs text-slate-400">{SHORT_ADDR(wallet)}</span>
-                  </div>
-                  <p className="text-2xl font-extrabold font-mono text-amber-300">
-                    {ws.handle}.ai
-                  </p>
-                  {ws.passActive ? (
-                    <div className="pt-2 border-t border-emerald-500/20 flex flex-wrap gap-3 text-xs text-emerald-200">
-                      <span className="inline-flex items-center gap-1">
-                        <CheckCircle2 className="h-3.5 w-3.5" aria-hidden="true" />
-                        Pass #{ws.passId} Active
-                      </span>
-                      <span className="inline-flex items-center gap-1">
-                        <Flame className="h-3.5 w-3.5 text-amber-400" aria-hidden="true" />
-                        Streak: {ws.streakDays}d ({ws.checkedInToday ? "2x Quota" : "1x Base"})
-                      </span>
-                    </div>
-                  ) : (
-                    <p className="text-xs text-slate-300">
-                      Verified! Activate your free on-chain Guard Pass once to unlock 25–50 free
-                      scans/day.
-                    </p>
-                  )}
-                </div>
-              ) : (
-                <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3.5 space-y-2 text-xs">
-                  <p className="font-semibold text-amber-300">
-                    Connected standard wallet {SHORT_ADDR(wallet)} (no .ai ID on this address)
-                  </p>
-                  <p className="text-slate-300 leading-relaxed">
-                    Binance isolates your <code className="text-amber-200">.ai</code> Agentic Wallet
-                    from the main dApp browser wallet. Switch to{" "}
                     <button
                       type="button"
-                      onClick={() => setPassMode("agent")}
-                      className="underline font-semibold text-emerald-300 cursor-pointer"
+                      onClick={() => void copyText("baw", bawPreviewCmd)}
+                      className="text-[11px] font-mono text-amber-300 hover:text-amber-200 inline-flex items-center gap-1 cursor-pointer"
                     >
-                      AI Agent (baw CLI)
-                    </button>{" "}
-                    to activate your Guard Pass directly from your Agentic Wallet.
-                  </p>
+                      {copiedId === "baw" ? (
+                        <Check className="h-3 w-3 text-emerald-400" aria-hidden="true" />
+                      ) : (
+                        <Copy className="h-3 w-3" aria-hidden="true" />
+                      )}
+                      Copy
+                    </button>
+                  </div>
+                  <pre className="rounded-xl border border-slate-800 bg-[#050810] p-2.5 text-[11px] font-mono text-amber-200/90 overflow-x-auto">
+                    {bawPreviewCmd}
+                  </pre>
                 </div>
-              )}
+              </div>
+            ) : (
+              <div className="space-y-3.5">
+                {!wallet ? (
+                  <p className="rounded-xl border border-slate-800 bg-[#050810] p-3.5 text-xs text-slate-300 leading-relaxed">
+                    Connect an EVM wallet holding a claimed <code className="text-amber-300">.ai</code>{" "}
+                    Agent ID on BSC (Chain 56). Note: Binance App&apos;s dApp browser injects your
+                    main MPC wallet — use the <strong>AI Agent (baw CLI)</strong> tab for isolated
+                    Agentic Wallets.
+                  </p>
+                ) : ws?.hasAgentId ? (
+                  <div className="rounded-xl border border-emerald-500/30 bg-emerald-950/20 p-3.5 text-xs text-emerald-200 space-y-1">
+                    <p className="font-semibold flex items-center gap-1.5">
+                      <CheckCircle2 className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+                      Verified handle: <span className="font-mono text-amber-300">{ws.handle}.ai</span>
+                    </p>
+                    <p className="text-slate-300">
+                      {ws.passActive
+                        ? `Pass #${ws.passId} is active (${ws.checkedInToday ? "50/day 2x quota" : "25/day base quota"}).`
+                        : "Activate your lifetime 0-BNB Guard Pass below to unlock free daily scans."}
+                    </p>
+                  </div>
+                ) : (
+                  <div className="rounded-xl border border-amber-500/30 bg-amber-950/20 p-3.5 space-y-1.5 text-xs">
+                    <p className="font-semibold text-amber-300">
+                      Connected standard wallet {SHORT_ADDR(wallet)} (no .ai ID on this address)
+                    </p>
+                    <p className="text-slate-300 leading-relaxed">
+                      Switch to{" "}
+                      <button
+                        type="button"
+                        onClick={() => setPassMode("agent")}
+                        className="underline font-semibold text-emerald-300 cursor-pointer"
+                      >
+                        AI Agent (baw CLI)
+                      </button>{" "}
+                      to activate directly from your isolated Agentic Wallet.
+                    </p>
+                  </div>
+                )}
 
-              {!wallet ? (
-                <button
-                  type="button"
-                  onClick={handleConnect}
-                  disabled={busyAction === "connect"}
-                  className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-4 py-2.5 transition-colors cursor-pointer disabled:opacity-60"
-                >
-                  <Wallet className="h-4 w-4" aria-hidden="true" />
-                  {busyAction === "connect" ? "Connecting…" : "Connect Browser Wallet"}
-                </button>
-              ) : ws?.hasAgentId && !ws.passActive ? (
-                <button
-                  type="button"
-                  onClick={handleActivatePass}
-                  disabled={busyAction === "activate"}
-                  className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm px-4 py-2.5 transition-colors cursor-pointer disabled:opacity-60"
-                >
-                  <ShieldCheck className="h-4 w-4" aria-hidden="true" />
-                  {busyAction === "activate"
-                    ? "Confirm in Wallet…"
-                    : "Claim Free .ai Guard Pass (0 BNB)"}
-                </button>
-              ) : ws?.passActive && !ws.checkedInToday ? (
-                <button
-                  type="button"
-                  onClick={handleRefreshPass}
-                  disabled={busyAction === "refresh"}
-                  className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-4 py-2.5 transition-colors cursor-pointer disabled:opacity-60"
-                >
-                  <Flame className="h-4 w-4" aria-hidden="true" />
-                  {busyAction === "refresh" ? "Refreshing…" : "Refresh Daily Pass (2x Quota)"}
-                </button>
-              ) : (
-                <button
-                  type="button"
-                  onClick={() => void fetchStatus(wallet)}
-                  className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 hover:border-emerald-400/50 bg-slate-900 text-slate-200 font-semibold text-sm px-4 py-2.5 transition-colors cursor-pointer"
-                >
-                  <Activity className="h-4 w-4 text-emerald-400" aria-hidden="true" />
-                  Refresh On-Chain Status
-                </button>
-              )}
-            </div>
-          )}
+                {!wallet ? (
+                  <button
+                    type="button"
+                    onClick={handleConnect}
+                    disabled={busyAction === "connect"}
+                    className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-4 py-2.5 transition-colors cursor-pointer disabled:opacity-60"
+                  >
+                    <Wallet className="h-4 w-4" aria-hidden="true" />
+                    {busyAction === "connect" ? "Connecting…" : "Connect Browser Wallet"}
+                  </button>
+                ) : ws?.hasAgentId && !ws.passActive ? (
+                  <button
+                    type="button"
+                    onClick={handleActivatePass}
+                    disabled={busyAction === "activate"}
+                    className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm px-4 py-2.5 transition-colors cursor-pointer disabled:opacity-60"
+                  >
+                    <ShieldCheck className="h-4 w-4" aria-hidden="true" />
+                    {busyAction === "activate"
+                      ? "Confirm in Wallet…"
+                      : "Claim Free .ai Guard Pass (0 BNB)"}
+                  </button>
+                ) : ws?.passActive && !ws.checkedInToday ? (
+                  <button
+                    type="button"
+                    onClick={handleRefreshPass}
+                    disabled={busyAction === "refresh"}
+                    className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-slate-950 font-bold text-sm px-4 py-2.5 transition-colors cursor-pointer disabled:opacity-60"
+                  >
+                    <Flame className="h-4 w-4" aria-hidden="true" />
+                    {busyAction === "refresh" ? "Refreshing…" : "Refresh Daily Pass (2x Quota)"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => void fetchStatus(wallet)}
+                    className="w-full min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 hover:border-emerald-400/50 bg-[#0b1322] text-slate-200 font-semibold text-sm px-4 py-2.5 transition-colors cursor-pointer"
+                  >
+                    <Activity className="h-4 w-4 text-emerald-400" aria-hidden="true" />
+                    Refresh On-Chain Status
+                  </button>
+                )}
+              </div>
+            )}
 
-          {txNotice && (
-            <div
-              role={txNotice.type === "err" ? "alert" : "status"}
-              className={`rounded-xl px-3.5 py-2.5 text-xs ${
-                txNotice.type === "ok"
-                  ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-200"
-                  : "bg-rose-500/15 border border-rose-500/30 text-rose-200"
-              }`}
-            >
-              <p>{txNotice.text}</p>
-              {txNotice.tx && (
-                <a
-                  href={`https://bscscan.com/tx/${txNotice.tx}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="mt-1 inline-flex items-center gap-1 underline font-mono"
-                >
-                  View on BscScan <ExternalLink className="h-3 w-3" aria-hidden="true" />
-                </a>
-              )}
-            </div>
-          )}
+            {txNotice && (
+              <div
+                role={txNotice.type === "err" ? "alert" : "status"}
+                className={`rounded-xl px-3.5 py-2.5 text-xs ${
+                  txNotice.type === "ok"
+                    ? "bg-emerald-500/15 border border-emerald-500/30 text-emerald-200"
+                    : "bg-rose-500/15 border border-rose-500/30 text-rose-200"
+                }`}
+              >
+                <p>{txNotice.text}</p>
+                {txNotice.tx && (
+                  <a
+                    href={`https://bscscan.com/tx/${txNotice.tx}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-1 inline-flex items-center gap-1 underline font-mono"
+                  >
+                    View on BscScan <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  </a>
+                )}
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Live BSC Smart Contract Safety & DEX Scanner */}
-        <div className="lg:col-span-7 rounded-2xl border border-slate-800/90 bg-[#0b111e] p-5 sm:p-6 space-y-5">
-          <div>
-            <h2 className="text-base sm:text-lg font-bold text-white flex items-center gap-2">
-              <Search className="h-5 w-5 text-emerald-400 shrink-0" aria-hidden="true" />
-              Live BSC Contract Safety &amp; DEX Scanner
-            </h2>
-            <p className="mt-1 text-xs sm:text-sm text-slate-400">
-              Real-time GoPlus honeypot check, bytecode privilege scan, and PancakeSwap liquidity
-              depth. Smart contracts only — personal wallets blocked.
-            </p>
+        {/* Right Column: Mission-Control BSC Safety & DEX Scanner */}
+        <div
+          id="scanner-workspace"
+          className="lg:col-span-7 glass-panel rounded-2xl p-5 sm:p-6 space-y-5 scroll-mt-20"
+        >
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div>
+              <h2 className="font-display text-lg font-bold text-white flex items-center gap-2">
+                <Search className="h-5 w-5 text-emerald-400 shrink-0" aria-hidden="true" />
+                Live BSC Contract Safety &amp; DEX Scanner
+              </h2>
+              <p className="mt-1 text-xs sm:text-sm text-slate-400 prose-pretty">
+                Aggregates GoPlus BSC honeypot analysis, bytecode privilege selectors, Sourcify
+                verification, and live PancakeSwap liquidity. Personal wallets blocked by design.
+              </p>
+            </div>
+          </div>
+
+          {/* Quick-Select Preset Chips */}
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="text-[11px] font-mono text-slate-400 uppercase tracking-wider">
+              Quick Targets:
+            </span>
+            {PRESET_CONTRACTS.map((preset) => (
+              <button
+                key={preset.address}
+                type="button"
+                onClick={() => {
+                  setContractInput(preset.address);
+                  if (preset.preview) {
+                    void runScan(true, preset.address);
+                  }
+                }}
+                className={`rounded-lg px-2.5 py-1 text-xs font-mono border transition-colors cursor-pointer ${
+                  preset.preview
+                    ? "border-emerald-500/35 bg-emerald-500/10 text-emerald-300 hover:bg-emerald-500/20"
+                    : "border-slate-800 bg-[#060b14] text-slate-300 hover:border-amber-400/40 hover:text-amber-200"
+                }`}
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
 
           <form
@@ -617,7 +703,7 @@ export function GuardApp() {
                   isInputInvalid ? "contract-addr-hint contract-addr-error" : "contract-addr-hint"
                 }
                 placeholder="0xbb4CdB9CBd36B01bD1cBaEBF2De08d9173bc095c"
-                className={`field-input w-full rounded-xl border border-slate-700 bg-[#060a12] px-3.5 py-2.5 font-mono text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 ${
+                className={`field-input w-full rounded-xl border border-slate-700/90 bg-[#050810] px-3.5 py-3 font-mono text-xs sm:text-sm text-slate-100 placeholder:text-slate-500 ${
                   isInputInvalid ? "user-invalid-fallback" : ""
                 }`}
               />
@@ -637,7 +723,7 @@ export function GuardApp() {
                   setContractInput(SAMPLE_WBNB_ADDRESS);
                   void runScan(true);
                 }}
-                className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-sm px-4 py-2.5 transition-colors cursor-pointer disabled:opacity-60"
+                className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-500 to-emerald-400 hover:from-emerald-400 hover:to-emerald-300 text-slate-950 font-bold text-sm px-4 py-2.5 shadow-md shadow-emerald-500/15 transition-all cursor-pointer disabled:opacity-60"
               >
                 <Sparkles className="h-4 w-4 shrink-0" aria-hidden="true" />
                 {busyAction === "scan" ? "Scanning BSC…" : "Instant Live Preview (WBNB)"}
@@ -645,7 +731,7 @@ export function GuardApp() {
               <button
                 type="submit"
                 disabled={busyAction === "scan"}
-                className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 hover:border-amber-400/50 bg-[#0e1729] text-slate-100 font-semibold text-sm px-4 py-2.5 transition-colors cursor-pointer disabled:opacity-60"
+                className="min-h-[44px] inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700/90 hover:border-amber-400/50 bg-[#0d1629] text-slate-100 font-semibold text-sm px-4 py-2.5 transition-colors cursor-pointer disabled:opacity-60"
               >
                 <ShieldCheck className="h-4 w-4 text-amber-400 shrink-0" aria-hidden="true" />
                 Scan Any Contract (.ai Pass)
@@ -663,81 +749,76 @@ export function GuardApp() {
             </div>
           )}
 
-          {safetyReport && (
-            <div className="rounded-xl border border-slate-700/80 bg-[#070c16] p-4 sm:p-5 space-y-4">
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="text-xs text-slate-300 font-mono font-semibold">
+          {safetyReport ? (
+            <div className="rounded-2xl border border-slate-700/80 bg-[#050912] p-4 sm:p-5 space-y-5">
+              {/* Top Report Summary + Radial SVG Gauge */}
+              <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-slate-800/80">
+                <div className="min-w-0 flex-1">
+                  <SafetyGauge score={safetyReport.safetyScore} verdict={safetyReport.verdict} />
+                </div>
+                <div className="space-y-1.5 sm:text-right sm:max-w-[230px] shrink-0">
+                  <p className="font-display text-base font-bold text-white leading-snug">
                     {safetyReport.tokenName
                       ? `${safetyReport.tokenName} (${safetyReport.tokenSymbol})`
-                      : "BSC Smart Contract"}{" "}
-                    · {SHORT_ADDR(safetyReport.targetContract)}
+                      : "BSC Smart Contract"}
                   </p>
-                  {accessBadge && (
-                    <p className="mt-1 text-[11px] text-emerald-300 font-medium">{accessBadge}</p>
-                  )}
-                </div>
-                <div className="flex items-center gap-2.5">
-                  <div className="text-right">
-                    <span className="block text-[10px] uppercase tracking-wider text-slate-400">
-                      Safety Score
-                    </span>
-                    <span className="text-xl sm:text-2xl font-extrabold font-mono text-white">
-                      {safetyReport.safetyScore}/100
-                    </span>
-                  </div>
-                  <span
-                    className={`px-2.5 py-1 rounded-full text-xs font-bold ${
-                      safetyReport.verdict === "SAFE"
-                        ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/40"
-                        : safetyReport.verdict === "CAUTION"
-                          ? "bg-amber-500/20 text-amber-300 border border-amber-500/40"
-                          : "bg-rose-500/20 text-rose-300 border border-rose-500/40"
-                    }`}
+                  <a
+                    href={`https://bscscan.com/address/${safetyReport.targetContract}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1 font-mono text-xs text-emerald-400 hover:underline"
                   >
-                    {safetyReport.verdict}
-                  </span>
+                    {SHORT_ADDR(safetyReport.targetContract)}
+                    <ExternalLink className="h-3 w-3" aria-hidden="true" />
+                  </a>
+                  {accessBadge && (
+                    <p className="text-[11px] font-mono text-amber-300/90 leading-snug">
+                      {accessBadge}
+                    </p>
+                  )}
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 text-xs">
-                <div className="rounded-lg bg-slate-900/90 border border-slate-800 p-2.5">
+              {/* 4 Glass Metric KPI Tiles */}
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                <div className="rounded-xl bg-[#0b1220] border border-slate-800/90 p-3">
                   <span className="text-slate-400 text-[11px] block">Buy / Sell Tax</span>
-                  <span className="font-mono font-semibold text-white">
+                  <span className="mt-0.5 block font-mono font-bold text-sm text-white">
                     {safetyReport.buyTaxPercent ?? 0}% / {safetyReport.sellTaxPercent ?? 0}%
                   </span>
                 </div>
-                <div className="rounded-lg bg-slate-900/90 border border-slate-800 p-2.5">
+                <div className="rounded-xl bg-[#0b1220] border border-slate-800/90 p-3">
                   <span className="text-slate-400 text-[11px] block">Bytecode Size</span>
-                  <span className="font-mono font-semibold text-white">
+                  <span className="mt-0.5 block font-mono font-bold text-sm text-white">
                     {safetyReport.bytecodeSizeBytes.toLocaleString()} B
                   </span>
                 </div>
-                <div className="rounded-lg bg-slate-900/90 border border-slate-800 p-2.5">
+                <div className="rounded-xl bg-[#0b1220] border border-slate-800/90 p-3">
                   <span className="text-slate-400 text-[11px] block">DEX Liquidity</span>
-                  <span className="font-mono font-semibold text-white">
+                  <span className="mt-0.5 block font-mono font-bold text-sm text-emerald-300">
                     {dexReport ? `$${dexReport.totalLiquidityUsd.toLocaleString()}` : "N/A"}
                   </span>
                 </div>
-                <div className="rounded-lg bg-slate-900/90 border border-slate-800 p-2.5">
+                <div className="rounded-xl bg-[#0b1220] border border-slate-800/90 p-3">
                   <span className="text-slate-400 text-[11px] block">24h Volume</span>
-                  <span className="font-mono font-semibold text-white">
+                  <span className="mt-0.5 block font-mono font-bold text-sm text-amber-300">
                     {dexReport ? `$${dexReport.volume24hUsd.toLocaleString()}` : "N/A"}
                   </span>
                 </div>
               </div>
 
+              {/* Risk Findings Checklist */}
               {safetyReport.flags.length > 0 && (
-                <ul className="space-y-1.5">
+                <ul className="space-y-2">
                   {safetyReport.flags.map((flag) => (
                     <li
                       key={flag.code}
-                      className={`rounded-lg px-3 py-2 text-xs border flex items-start gap-2 ${
+                      className={`rounded-xl px-3.5 py-2.5 text-xs border flex items-start gap-2.5 ${
                         flag.severity === "critical"
-                          ? "bg-rose-950/30 border-rose-500/30 text-rose-200"
+                          ? "bg-rose-950/30 border-rose-500/35 text-rose-200"
                           : flag.severity === "warn"
-                            ? "bg-amber-950/30 border-amber-500/30 text-amber-200"
-                            : "bg-slate-900/70 border-slate-800 text-slate-300"
+                            ? "bg-amber-950/25 border-amber-500/35 text-amber-200"
+                            : "bg-slate-900/75 border-slate-800 text-slate-300"
                       }`}
                     >
                       {flag.severity === "info" ? (
@@ -752,15 +833,25 @@ export function GuardApp() {
                         />
                       )}
                       <div>
-                        <span className="font-semibold">{flag.title}:</span> {flag.detail}
+                        <span className="font-semibold text-white">{flag.title}:</span>{" "}
+                        {flag.detail}
                       </div>
                     </li>
                   ))}
                 </ul>
               )}
 
-              <div className="pt-2 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3">
-                <span className="text-[11px] text-slate-400">{safetyReport.disclaimer}</span>
+              {/* Footer Actions: Raw JSON Toggle + Anchor Digest */}
+              <div className="pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowRawJson((v) => !v)}
+                  className="inline-flex items-center gap-1.5 text-xs font-mono text-slate-400 hover:text-emerald-300 cursor-pointer"
+                >
+                  <Code2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  {showRawJson ? "Hide Raw Agent JSON" : "Inspect Raw Agent JSON"}
+                </button>
+
                 {wallet && ws?.passActive && (
                   <button
                     type="button"
@@ -772,19 +863,113 @@ export function GuardApp() {
                   </button>
                 )}
               </div>
+
+              {showRawJson && (
+                <pre className="rounded-xl border border-slate-800 bg-[#03060c] p-3 text-[11px] font-mono text-emerald-200/90 overflow-x-auto max-h-64">
+                  {JSON.stringify({ safetyReport, dexReport }, null, 2)}
+                </pre>
+              )}
+
+              <p className="text-[11px] text-slate-500">{safetyReport.disclaimer}</p>
+            </div>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-800 bg-[#050912]/70 p-6 text-center space-y-2">
+              <p className="text-sm font-semibold text-slate-200">
+                Ready for live BSC Mainnet inspection
+              </p>
+              <p className="text-xs text-slate-400 max-w-md mx-auto">
+                Click <strong className="text-emerald-300">Instant Live Preview (WBNB)</strong>{" "}
+                above to see a live GoPlus + PancakeSwap safety report with zero wallet setup.
+              </p>
             </div>
           )}
         </div>
       </section>
 
-      {/* Recent On-Chain Verified Audits Table */}
-      <section className="space-y-3">
+      {/* ====================================================================
+          SECTION 3: 3-Card Architectural Bento Strip
+         ==================================================================== */}
+      <section className="space-y-4">
+        <div className="flex flex-wrap items-end justify-between gap-2">
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-emerald-400 font-semibold">
+              Protocol Architecture
+            </p>
+            <h2 className="section-heading font-display font-bold text-white mt-1">
+              Why Removing Binance Agent ID Breaks Gate402
+            </h2>
+          </div>
+          <a
+            href="/developers"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-amber-300 hover:text-amber-200"
+          >
+            Explore Developer Workbench <ArrowRight className="h-3.5 w-3.5" aria-hidden="true" />
+          </a>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {[
+            {
+              icon: ShieldCheck,
+              accent: "text-emerald-400 border-emerald-500/30 bg-emerald-500/10",
+              tag: "SYBIL RESISTANCE",
+              title: "1 KYC Human = 1 Quota",
+              body: "Gate402Registry atomically checks balanceOf, handleOf, and ownerOfHandle against SPACE ID HandleRegistry (0x60B9…022F). Spinning up 1,000 burner wallets yields zero extra free calls.",
+            },
+            {
+              icon: Zap,
+              accent: "text-amber-400 border-amber-500/30 bg-amber-500/10",
+              tag: "X402 V2 OVERFLOW",
+              title: "Zero Credit Cards Needed",
+              body: "When an AI agent exceeds its 25–50 daily free calls, Gate402 emits RFC-compliant HTTP 402 PAYMENT-REQUIRED headers (eip155:56 BSC USDT/USDC) natively signed by baw x402-payment.",
+            },
+            {
+              icon: Lock,
+              accent: "text-sky-400 border-sky-500/30 bg-sky-500/10",
+              tag: "IMMUTABLE SAFETY",
+              title: "Ownerless & Contract-Only",
+              body: "Zero admin keys, zero fund custody, zero web QR login. Both our Solidity contract and API reject EOA addresses so Agent ID can never be abused for personal wallet stalking.",
+            },
+          ].map((card) => {
+            const Icon = card.icon;
+            return (
+              <article
+                key={card.title}
+                className="glass-panel rounded-2xl p-5 space-y-3 hover:border-slate-700/90 transition-colors"
+              >
+                <div className="flex items-center justify-between">
+                  <span
+                    className={`inline-flex h-10 w-10 items-center justify-center rounded-xl border ${card.accent}`}
+                  >
+                    <Icon className="h-5 w-5" aria-hidden="true" />
+                  </span>
+                  <span className="font-mono text-[10px] tracking-widest text-slate-400">
+                    {card.tag}
+                  </span>
+                </div>
+                <h3 className="font-display text-base font-bold text-white">{card.title}</h3>
+                <p className="prose-pretty text-xs text-slate-400 leading-relaxed">{card.body}</p>
+              </article>
+            );
+          })}
+        </div>
+      </section>
+
+      {/* ====================================================================
+          SECTION 4: Live On-Chain Verified Contract Audits Ledger
+         ==================================================================== */}
+      <section className="space-y-4">
         <div className="flex flex-wrap items-center justify-between gap-2">
-          <h2 className="text-lg sm:text-xl font-bold text-white">
-            Recent On-Chain .ai Contract Audits
-          </h2>
+          <div>
+            <p className="font-mono text-[11px] uppercase tracking-widest text-amber-400 font-semibold">
+              Immutable Mainnet Ledger
+            </p>
+            <h2 className="section-heading font-display font-bold text-white mt-0.5">
+              Recent On-Chain .ai Contract Audits
+            </h2>
+          </div>
           <span className="text-xs text-slate-400">
-            Signed by verified Binance Agent IDs · Smart contracts only
+            Cryptographically anchored on BSC Mainnet · Smart contracts only
           </span>
         </div>
 
@@ -816,19 +1001,28 @@ export function GuardApp() {
                         href={`https://bscscan.com/address/${a.targetContract}`}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="hover:underline"
+                        className="inline-flex items-center gap-1 hover:underline"
                       >
                         {SHORT_ADDR(a.targetContract)}
+                        <ExternalLink className="h-3 w-3 opacity-75" aria-hidden="true" />
                       </a>
                     </th>
-                    <td data-label="Auditor (.ai)" className="font-mono text-amber-300">
+                    <td data-label="Auditor (.ai)" className="font-mono font-semibold text-amber-300">
                       {a.auditorHandle}.ai
                     </td>
-                    <td data-label="Score" className="font-mono text-white">
+                    <td data-label="Score" className="font-mono font-bold text-white">
                       {a.safetyScore}/100
                     </td>
                     <td data-label="Verdict">
-                      <span className="font-semibold text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-200">
+                      <span
+                        className={`font-mono font-bold text-[11px] px-2.5 py-0.5 rounded-full border ${
+                          a.verdict === 0
+                            ? "bg-emerald-500/15 text-emerald-300 border-emerald-500/35"
+                            : a.verdict === 1
+                              ? "bg-amber-500/15 text-amber-300 border-amber-500/35"
+                              : "bg-rose-500/15 text-rose-300 border-rose-500/35"
+                        }`}
+                      >
                         {VERDICT_LABELS[a.verdict] ?? "UNKNOWN"}
                       </span>
                     </td>
@@ -840,19 +1034,19 @@ export function GuardApp() {
               ) : (
                 <tr>
                   <th scope="row" className="font-mono text-slate-300">
-                    No audits anchored yet
+                    Loading live BSC audits…
                   </th>
                   <td data-label="Auditor (.ai)" className="text-slate-400">
-                    Activate Pass #1 via AI Agent Mode
+                    —
                   </td>
                   <td data-label="Score" className="text-slate-400">
                     —
                   </td>
                   <td data-label="Verdict" className="text-slate-400">
-                    Try Instant Live Preview above
+                    —
                   </td>
                   <td data-label="Report Hash" className="text-slate-400">
-                    0 BNB gas-only digest
+                    —
                   </td>
                 </tr>
               )}

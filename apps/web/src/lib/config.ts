@@ -60,9 +60,10 @@ export function getServerConfig() {
     ? (rawPayTo as Address)
     : ("0x000000000000000000000000000000000000dEaD" as Address);
 
-  const appUrl =
+  const rawAppUrl =
     process.env.NEXT_PUBLIC_APP_URL?.trim() ||
     (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+  const appUrl = rawAppUrl.replace(/\/+$/, "");
 
   const facilitatorUrl = process.env.X402_FACILITATOR_URL?.trim() || undefined;
 
